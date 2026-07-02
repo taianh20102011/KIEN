@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vương Quốc Kiến Của Tôi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">🐜 Ant World</div>
+        <button id="addBtn">+ Đăng loài kiến mới</button>
+    </header>
+
+    <main>
+        <div id="antGallery" class="gallery"></div>
+    </main>
+
+    <div id="antModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Đăng thông tin kiến</h2>
+            <form id="antForm">
+                <input type="text" id="antName" placeholder="Tên loài kiến (VD: Camponotus)" required>
+                <input type="text" id="antImage" placeholder="Link ảnh của bạn (URL)" required>
+                <textarea id="antDesc" rows="4" placeholder="Mô tả tập tính, thức ăn..." required></textarea>
+                
+                <input type="password" id="adminPassword" placeholder="Nhập mật khẩu quản trị để đăng" required>
+                
+                <button type="submit" class="submit-btn">Đăng lên Web</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
