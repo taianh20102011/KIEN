@@ -3,31 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vương Quốc Kiến Của Tôi</title>
+    <title>AntVương Quốc - Bộ Sưu Tập Kiến Của Tôi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <header>
-        <div class="logo">🐜 Ant World</div>
-        <button id="addBtn">+ Đăng loài kiến mới</button>
+        <div class="logo">
+            <span class="logo-icon">🐜</span>
+            <div class="logo-text">
+                <h1>AntKingdom</h1>
+                <p>My Private Collection</p>
+            </div>
+        </div>
+        <button id="addBtn" class="btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Đăng loài mới
+        </button>
     </header>
 
     <main>
+        <section class="hero-section">
+            <h2>Khám Phá Thế Giới Sinh Vật Kỳ Diệu</h2>
+            <p>Nơi lưu trữ chi tiết dữ liệu, tập tính và quá trình chăm sóc các dòng kiến cảnh tại gia.</p>
+        </section>
+        
         <div id="antGallery" class="gallery"></div>
     </main>
 
+    <div id="detailModal" class="modal">
+        <div class="modal-content detail-content animate-pop">
+            <span class="close-btn" id="closeDetail">&times;</span>
+            <div class="detail-grid">
+                <div class="detail-image-wrapper">
+                    <img id="detailImg" src="" alt="">
+                </div>
+                <div class="detail-info">
+                    <h2 id="detailName"></h2>
+                    <div class="divider"></div>
+                    <div class="detail-scroll">
+                        <p id="detailDesc"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="antModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Đăng thông tin kiến</h2>
+        <div class="modal-content form-content animate-pop">
+            <span class="close-btn" id="closeForm">&times;</span>
+            <h2>Đăng thông tin kiến mới</h2>
+            <p class="form-subtitle">Chỉ có chủ sở hữu tab mới có quyền ghi dữ liệu</p>
+            
             <form id="antForm">
-                <input type="text" id="antName" placeholder="Tên loài kiến (VD: Camponotus)" required>
-                <input type="text" id="antImage" placeholder="Link ảnh của bạn (URL)" required>
-                <textarea id="antDesc" rows="4" placeholder="Mô tả tập tính, thức ăn..." required></textarea>
+                <div class="input-group">
+                    <label for="antName">Tên loài kiến</label>
+                    <input type="text" id="antName" placeholder="Ví dụ: Camponotus Nicobarensis" required>
+                </div>
                 
-                <input type="password" id="adminPassword" placeholder="Nhập mật khẩu quản trị để đăng" required>
+                <div class="input-group">
+                    <label for="antImage">Link hình ảnh (URL)</label>
+                    <input type="url" id="antImage" placeholder="https://images.unsplash.com/..." required>
+                </div>
                 
-                <button type="submit" class="submit-btn">Đăng lên Web</button>
+                <div class="input-group">
+                    <label for="antDesc">Mô tả chi tiết (Tập tính, thức ăn, nhiệt độ...)</label>
+                    <textarea id="antDesc" rows="6" placeholder="Nhập thoải mái, xuống dòng rõ ràng..." required></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label for="adminPassword">Mật khẩu quản trị</label>
+                    <input type="password" id="adminPassword" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="btn-submit">Xác nhận đăng lên Web</button>
             </form>
         </div>
     </div>
