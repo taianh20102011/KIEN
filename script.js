@@ -1,6 +1,6 @@
 // Kết nối bộ thư viện Firebase Firestore chính hãng qua CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const MAT_KHAU_ADMIN = "kien2026"; 
 
@@ -22,10 +22,13 @@ const gallery = document.getElementById('antGallery');
 const antModal = document.getElementById('antModal');
 const detailModal = document.getElementById('detailModal');
 const form = document.getElementById('antForm');
-let loadedAnts = [];
-let isSubmitting = false; // BIẾN KHÓA ĐỂ NGĂN GỬI TRÙNG LẶP
+const formTitle = document.getElementById('formTitle');
 
-// 1. TẢI DỮ LIỆU (Đã làm sạch mảng cũ)
+let loadedAnts = [];
+let isSubmitting = false; 
+let editId = null; // BIẾN LƯU ID KHI ĐANG SỬA (null = Đang thêm mới)
+
+// 1. TẢI DỮ LIỆU
 async function loadAntKingdom() {
     gallery.innerHTML = '<p style="text-align: center; color: var(--accent);">🍁 Đang mở cửa hang kiến...</p>';
     try {
@@ -56,7 +59,10 @@ async function loadAntKingdom() {
                 <div class="card-content">
                     <h3>${ant.name}</h3>
                     <p>${ant.desc}</p>
-                    <div class="card-footer">Xem chi tiết</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                        <div class="card-footer">Xem chi tiết</div>
+                        <button class="btn-edit" data-index="${loadedAnts.length - 1}">✏️ Sửa</button>
+                    </div>
                 </div>
             `;
             gallery.appendChild(card);
@@ -67,10 +73,13 @@ async function loadAntKingdom() {
     }
 }
 
-// 2. SỰ KIỆN CLICK MỞ MODAL
+// 2. SỰ KIỆN CLICK MỞ MODAL & SỬA
 function setupCardClicks() {
+    // Click vào card để xem chi tiết (Trừ khi click trúng nút Sửa)
     document.querySelectorAll('.card').forEach(card => {
-        card.onclick = () => {
+        card.onclick = (e) => {
+            if (e.target.classList.contains('btn-edit')) return; // Bấm nút sửa thì bỏ qua hàm này
+
             const ant = loadedAnts[card.dataset.index];
             document.getElementById('detailImg').src = ant.image;
             document.getElementById('detailName').innerText = ant.name;
@@ -78,17 +87,43 @@ function setupCardClicks() {
             detailModal.style.display = "block";
         };
     });
+
+    // Xử lý sự kiện khi bấm nút Sửa
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation(); // Ngăn chặn sự kiện mở modal xem chi tiết
+            
+            const ant = loadedAnts[btn.dataset.index];
+            
+            // Đổ dữ liệu cũ vào Form
+            editId = ant.id; // Chuyển sang chế độ Chỉnh sửa
+            formTitle.innerText = "Chỉnh Sửa Cư Dân";
+            document.getElementById('antName').value = ant.name;
+            document.getElementById('antImage').value = ant.image;
+            document.getElementById('antDesc').value = ant.desc;
+            document.getElementById('adminPassword').value = ""; // Để trống bắt nhập lại mật khẩu
+
+            antModal.style.display = "block";
+        };
+    });
 }
 
 // 3. XỬ LÝ ĐÓNG MODAL
 document.getElementById('closeForm').onclick = () => antModal.style.display = "none";
 document.getElementById('closeDetail').onclick = () => detailModal.style.display = "none";
-document.getElementById('addBtn').onclick = () => antModal.style.display = "block";
 
-// 4. GỬI DỮ LIỆU (ĐÃ FIX LỖI TRÙNG LẶP)
+// Nút "Đăng loài mới" -> Reset Form về trạng thái Thêm mới
+document.getElementById('addBtn').onclick = () => {
+    editId = null; // Reset về trạng thái Thêm mới
+    formTitle.innerText = "Thêm Cư Dân Mới";
+    form.reset();
+    antModal.style.display = "block";
+};
+
+// 4. GỬI DỮ LIỆU (XỬ LÝ CẢ THÊM & SỬA)
 form.onsubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return; // Nếu đang gửi thì chặn luôn
+    if (isSubmitting) return; 
 
     const pass = document.getElementById('adminPassword').value;
     if (pass !== MAT_KHAU_ADMIN) {
@@ -96,26 +131,38 @@ form.onsubmit = async (e) => {
         return;
     }
 
-    isSubmitting = true; // Bật khóa
+    isSubmitting = true; 
     const submitBtn = form.querySelector('.btn-submit');
-    submitBtn.innerText = "Đang đăng...";
+    submitBtn.innerText = editId ? "Đang cập nhật..." : "Đang đăng...";
+
+    const antData = {
+        name: document.getElementById('antName').value,
+        image: document.getElementById('antImage').value,
+        desc: document.getElementById('antDesc').value,
+        updatedAt: new Date() // Lưu thêm thời gian cập nhật
+    };
 
     try {
-        await addDoc(collection(db, "ants"), {
-            name: document.getElementById('antName').value,
-            image: document.getElementById('antImage').value,
-            desc: document.getElementById('antDesc').value,
-            createdAt: new Date()
-        });
+        if (editId) {
+            // Chế độ: CHỈNH SỬA
+            const antDocRef = doc(db, "ants", editId);
+            await updateDoc(antDocRef, antData);
+            alert("🎉 Cập nhật thành công!");
+        } else {
+            // Chế độ: THÊM MỚI
+            antData.createdAt = new Date();
+            await addDoc(collection(db, "ants"), antData);
+            alert("🎉 Thêm thành công!");
+        }
         
         form.reset();
         antModal.style.display = "none";
-        await loadAntKingdom(); // Tải lại danh sách
-        alert("🎉 Thành công!");
+        await loadAntKingdom(); // Tải lại danh sách mới nhất
     } catch (err) {
-        alert("Lỗi đăng bài!");
+        console.error(err);
+        alert("Có lỗi xảy ra khi thao tác!");
     } finally {
-        isSubmitting = false; // Mở khóa sau khi xong
+        isSubmitting = false; 
         submitBtn.innerText = "Xác nhận đăng";
     }
 };
