@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AntKingdom - My Private Collection</title>
-    <!-- Nhúng font chữ Inter phong cách công nghệ / hiện đại -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -97,8 +96,26 @@
             overflow: hidden; margin-bottom: 16px;
         }
         .card-footer {
-            margin-top: auto; font-size: 13px; font-weight: 600; color: var(--accent);
+            font-size: 13px; font-weight: 600; color: var(--accent);
             display: flex; align-items: center; gap: 4px;
+        }
+
+        /* NÚT SỬA TRÊN CARD */
+        .btn-edit {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-edit:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(132, 204, 22, 0.05);
         }
 
         /* HỆ THỐNG POPUP (MODAL) */
@@ -131,7 +148,7 @@
         .detail-scroll { overflow-y: auto; padding-right: 10px; }
         .detail-scroll p {
             font-size: 15px; color: #d4d4d8; line-height: 1.8;
-            white-space: pre-line; /* Giữ nguyên xuống dòng */
+            white-space: pre-line;
         }
 
         /* Giao diện Popup Nhập liệu */
@@ -179,7 +196,6 @@
         <div id="antGallery" class="gallery"></div>
     </main>
 
-    <!-- Modal Chi tiết -->
     <div id="detailModal" class="modal">
         <div class="modal-content detail-content">
             <span class="close-btn" id="closeDetail">&times;</span>
@@ -193,11 +209,10 @@
         </div>
     </div>
 
-    <!-- Modal Form Đăng Bài -->
     <div id="antModal" class="modal">
         <div class="modal-content form-content">
             <span class="close-btn" id="closeForm">&times;</span>
-            <h2>Thêm Cư Dân Mới</h2>
+            <h2 id="formTitle">Thêm Cư Dân Mới</h2>
             
             <form id="antForm">
                 <div class="input-group">
@@ -216,11 +231,184 @@
                     <label>Mật khẩu quản trị</label>
                     <input type="password" id="adminPassword" placeholder="••••••••" required>
                 </div>
-                <button type="submit" class="btn-submit">Xác nhận đăng</button>
+                <button type="submit" class="btn-submit">Xác nhận lưu</button>
             </form>
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const MAT_KHAU_ADMIN = "kien2026"; 
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtp4izpF1GCH2qWpeLtZOdk33A_iNKzqg",
+            authDomain: "nknl-d7b54.firebaseapp.com",
+            projectId: "nknl-d7b54",
+            storageBucket: "nknl-d7b54.firebasestorage.app",
+            messagingSenderId: "792185587281",
+            appId: "1:792185587281:web:585e98f2f87d7d59031a70",
+            measurementId: "G-TC7XHSSCBX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Biến DOM và State
+        const gallery = document.getElementById('antGallery');
+        const antModal = document.getElementById('antModal');
+        const detailModal = document.getElementById('detailModal');
+        const form = document.getElementById('antForm');
+        const formTitle = document.getElementById('formTitle');
+
+        let loadedAnts = [];
+        let isSubmitting = false; 
+        let editId = null; // null = Thêm mới, có giá trị = Chỉnh sửa loại kiến đó
+
+        // 1. TẢI DỮ LIỆU
+        async function loadAntKingdom() {
+            gallery.innerHTML = '<p style="text-align: center; color: var(--accent);">🍁 Đang mở cửa hang kiến...</p>';
+            try {
+                const q = query(collection(db, "ants"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                gallery.innerHTML = ''; 
+                loadedAnts = []; 
+
+                if (querySnapshot.empty) {
+                    gallery.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Vương quốc chưa có cư dân.</p>';
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const ant = doc.data();
+                    ant.id = doc.id; 
+                    loadedAnts.push(ant);
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.index = loadedAnts.length - 1; 
+
+                    card.innerHTML = `
+                        <div class="card-img-wrapper">
+                            <img src="${ant.image}" alt="${ant.name}" onerror="this.src='https://images.unsplash.com/photo-1605092676920-8cb5ae46c9d1?q=80&w=600'">
+                        </div>
+                        <div class="card-content">
+                            <h3>${ant.name}</h3>
+                            <p>${ant.desc}</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                                <div class="card-footer">Xem chi tiết</div>
+                                <button class="btn-edit" data-index="${loadedAnts.length - 1}">✏️ Sửa</button>
+                            </div>
+                        </div>
+                    `;
+                    gallery.appendChild(card);
+                });
+                setupCardClicks();
+            } catch (error) {
+                gallery.innerHTML = '<p style="color: red;">Lỗi kết nối Firebase.</p>';
+            }
+        }
+
+        // 2. SỰ KIỆN CLICK MỞ MODAL & SỬA
+        function setupCardClicks() {
+            // Click vào thẻ để xem chi tiết
+            document.querySelectorAll('.card').forEach(card => {
+                card.onclick = (e) => {
+                    // Nếu click trúng nút sửa thì dừng lại, không mở popup chi tiết
+                    if (e.target.classList.contains('btn-edit')) return; 
+
+                    const ant = loadedAnts[card.dataset.index];
+                    document.getElementById('detailImg').src = ant.image;
+                    document.getElementById('detailName').innerText = ant.name;
+                    document.getElementById('detailDesc').innerText = ant.desc;
+                    detailModal.style.display = "block";
+                };
+            });
+
+            // Click vào nút Sửa độc lập
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // Chống tràn sự kiện click ra thẻ cha (card)
+                    
+                    const ant = loadedAnts[btn.dataset.index];
+                    
+                    editId = ant.id; // Gắn ID để bật chế độ Edit
+                    formTitle.innerText = "Chỉnh Sửa Cư Dân";
+                    
+                    // Điền thông tin cũ vào form
+                    document.getElementById('antName').value = ant.name;
+                    document.getElementById('antImage').value = ant.image;
+                    document.getElementById('antDesc').value = ant.desc;
+                    document.getElementById('adminPassword').value = ""; // Buộc nhập lại pass quản trị để lưu
+
+                    antModal.style.display = "block";
+                };
+            });
+        }
+
+        // 3. XỬ LÝ ĐÓNG MODAL
+        document.getElementById('closeForm').onclick = () => antModal.style.display = "none";
+        document.getElementById('closeDetail').onclick = () => detailModal.style.display = "none";
+
+        // Bấm nút "Đăng loài mới" ngoài màn hình chính
+        document.getElementById('addBtn').onclick = () => {
+            editId = null; // Trở lại trạng thái thêm mới
+            formTitle.innerText = "Thêm Cư Dân Mới";
+            form.reset(); // Xoá sạch trắng form
+            antModal.style.display = "block";
+        };
+
+        // 4. GỬI DỮ LIỆU CHUNG (HÀM TỰ ĐỘNG PHÂN CHIA THÊM / SỬA)
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            if (isSubmitting) return; 
+
+            const pass = document.getElementById('adminPassword').value;
+            if (pass !== MAT_KHAU_ADMIN) {
+                alert("❌ Sai mật khẩu quản trị!");
+                return;
+            }
+
+            isSubmitting = true; 
+            const submitBtn = form.querySelector('.btn-submit');
+            submitBtn.innerText = editId ? "Đang cập nhật..." : "Đang đăng...";
+
+            const antData = {
+                name: document.getElementById('antName').value,
+                image: document.getElementById('antImage').value,
+                desc: document.getElementById('antDesc').value,
+                updatedAt: new Date()
+            };
+
+            try {
+                if (editId) {
+                    // Thực hiện UPDATE dữ liệu cũ dựa vào ID
+                    const antDocRef = doc(db, "ants", editId);
+                    await updateDoc(antDocRef, antData);
+                    alert("🎉 Cập nhật thông tin loài kiến thành công!");
+                } else {
+                    // Thực hiện THÊM MỚI dữ liệu hoàn toàn
+                    antData.createdAt = new Date();
+                    await addDoc(collection(db, "ants"), antData);
+                    alert("🎉 Thêm loài kiến mới thành công!");
+                }
+                
+                form.reset();
+                antModal.style.display = "none";
+                await loadAntKingdom(); // Reload lại danh sách hiển thị
+            } catch (err) {
+                console.error(err);
+                alert("Đã xảy ra lỗi hệ thống, vui lòng thử lại!");
+            } finally {
+                isSubmitting = false; 
+                submitBtn.innerText = "Xác nhận lưu";
+            }
+        };
+
+        // Khởi động load danh sách ngay khi mở trang web
+        loadAntKingdom();
+    </script>
 </body>
 </html>
